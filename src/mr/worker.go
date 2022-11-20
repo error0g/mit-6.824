@@ -1,10 +1,14 @@
 package mr
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"time"
+)
 import "log"
 import "net/rpc"
 import "hash/fnv"
-
 
 //
 // Map functions return a slice of KeyValue.
@@ -24,15 +28,21 @@ func ihash(key string) int {
 	return int(h.Sum32() & 0x7fffffff)
 }
 
-
 //
 // main/mrworker.go calls this function.
 //
-func Worker(mapf func(string, string) []KeyValue,
-	reducef func(string, []string) string) {
-
+func Worker(mapf func(string, string) []KeyValue, reducef func(string, []string) string) {
 	// Your worker implementation here.
-
+	job := Job{}
+	var id = strconv.Itoa(os.Getuid())
+	ok := call("Coordinator.Start", &id, &job)
+	if ok {
+		// reply.Y should be 100.
+		fmt.Printf("id: %v\n", job.Id)
+	} else {
+		fmt.Printf("call failed!\n")
+	}
+	time.Sleep(1000)
 	// uncomment to send the Example RPC to the coordinator.
 	// CallExample()
 

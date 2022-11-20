@@ -22,8 +22,11 @@ type ExampleReply struct {
 	Y int
 }
 
-// Add your RPC definitions here.
-
+type Job struct {
+	Id      int
+	JobType int //0.map 1.reduce 2.done
+	File    string
+}
 
 // Cook up a unique-ish UNIX-domain socket name
 // in /var/tmp, for the coordinator.

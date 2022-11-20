@@ -1,15 +1,27 @@
 package mr
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 import "net"
 import "os"
 import "net/rpc"
 import "net/http"
 
-
 type Coordinator struct {
-	// Your definitions here.
+	mapTaskStatus    map[int]int
+	reduceTaskStatus map[int]int
 
+	//filename:jobId
+	mapTask     map[string]int
+	reduceTTask map[string]int
+
+	mapDone    bool
+	reduceDone bool
+
+	mapChan    chan Job
+	reduceChan chan Job
 }
 
 // Your code here -- RPC handlers for the worker to call.
@@ -24,6 +36,21 @@ func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
 	return nil
 }
 
+func (c *Coordinator) Start(id *string, reply *Job) error {
+	temp := <-c.mapChan
+	reply.Id = temp.Id
+	reply.JobType = temp.JobType
+	reply.File = temp.File
+	return nil
+}
+
+func (c *Coordinator) Test() error {
+	if len(c.mapChan) > 0 {
+		temp := <-c.mapChan
+		fmt.Printf("id: %v\n", temp.Id)
+	}
+	return nil
+}
 
 //
 // start a thread that listens for RPCs from worker.go
@@ -50,7 +77,6 @@ func (c *Coordinator) Done() bool {
 
 	// Your code here.
 
-
 	return ret
 }
 
@@ -59,12 +85,38 @@ func (c *Coordinator) Done() bool {
 // main/mrcoordinator.go calls this function.
 // nReduce is the number of reduce tasks to use.
 //
+var id = 0
+
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
-
-	// Your code here.
-
-
+	Init(&c, files)
 	c.server()
+	//c.Test()
 	return &c
+}
+
+func Init(c *Coordinator, files []string) {
+	c.mapTaskStatus = make(map[int]int)
+	c.reduceTaskStatus = make(map[int]int)
+	c.mapTask = make(map[string]int)
+	c.reduceTTask = make(map[string]int)
+	c.mapDone = false
+	c.reduceDone = false
+	c.mapChan = make(chan Job)
+	c.reduceChan = make(chan Job)
+	// Your code here.
+	for _, file := range files {
+		c.mapTask[file] = id
+		c.mapTaskStatus[id] = 0
+		id = id + 1
+	}
+	go func() {
+		for k, v := range c.mapTask {
+			job := Job{}
+			job.Id = v
+			job.JobType = 0
+			job.File = k
+			c.mapChan <- job
+		}
+	}()
 }
